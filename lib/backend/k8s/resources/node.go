@@ -49,7 +49,7 @@ func (c *nodeClient) Create(kvp *model.KVPair) (*model.KVPair, error) {
 func (c *nodeClient) Update(kvp *model.KVPair) (*model.KVPair, error) {
 	node, err := CalicoToK8sNode(kvp)
 	if err != nil {
-		return nil, err
+		return nil, K8sErrorToCalico(err, kvp.Key)
 	}
 
 	newNode, err := c.clientSet.Nodes().Update(node)
@@ -68,14 +68,17 @@ func (c *nodeClient) Update(kvp *model.KVPair) (*model.KVPair, error) {
 func (c *nodeClient) Apply(kvp *model.KVPair) (*model.KVPair, error) {
 	node, err := c.Update(kvp)
 	if err != nil {
-		if _, ok := err.(errors.ErrorResourceDoesNotExist); ok {
-			log.Warnf("Could not locate Node %s in k8s API, Create not supported", node.Key.(model.NodeKey).Hostname)
-			return nil, errors.ErrorOperationNotSupported{
-					Identifier: kvp.Key,
-					Operation:  "Create",
-			}
+		if _, ok := err.(errors.ErrorResourceDoesNotExist); !ok {
+			return nil, err
 		}
-		return nil, err
+		log.Warnf("Node Apply could not find %s in k8s datastore", kvp.Key.(model.NodeKey).Hostname)
+
+		// Create is not currently implemented, and probably will not be, but will throw an appropriate error
+		// for the user, along with the above warning
+		node, err = c.Create(kvp)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return node, nil
 }

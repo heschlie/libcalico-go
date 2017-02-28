@@ -24,23 +24,29 @@ import (
 	kapiv1 "k8s.io/client-go/pkg/api/v1"
 )
 
+// Convert a Kubernetes format node, with Calico annotations, to a Calico Node
 func K8sNodeToCalico(node *kapiv1.Node) (*model.KVPair, error) {
-	// Get the internal IP of the node, should be 1-1 with calico node IP
-	nodeIP := ""
-	for _, address := range node.Status.Addresses {
-		if address.Type == kapiv1.NodeInternalIP {
-			nodeIP = address.Address
-			log.Debugf("Found NodeInternalIP %s", nodeIP)
-			break
-		}
+	annotations := node.ObjectMeta.Annotations
+
+	ip := net.ParseIP(annotations["projectcalico.org/IPv4"])
+
+	_, bgpV4Cidr, err := net.ParseCIDR(annotations["projectcalico.org/BGPIPv4Net"])
+	if err != nil {
+		log.Warnf("Could not parse BGPIPv4CIDR from k8s annotation: %s",
+			annotations["projectcalico.org/BGPIPv4Net"])
 	}
 
-	ip := net.ParseIP(nodeIP)
+	bgpAsn, err := numorstring.ASNumberFromString(annotations["projectcalico.org/BGPASNumber"])
+	if err != nil {
+		log.Warnf("Could not parse ASNumber from k8s annotation: %s",
+			annotations["projectcalico.org/BGPASNumber"])
+	}
+
 	log.Debugf("Node IP is %s", ip)
 	if ip == nil {
 		return nil, fmt.Errorf("Failed to parse IP '%s' received from k8s for Node", nodeIP)
 	}
-	asn := numorstring.ASNumber(64512)
+
 	return &model.KVPair{
 		Key: model.NodeKey{
 			Hostname: node.Name,
@@ -49,9 +55,31 @@ func K8sNodeToCalico(node *kapiv1.Node) (*model.KVPair, error) {
 			FelixIPv4:   ip,
 			Labels:      node.Labels,
 			BGPIPv4Addr: ip,
-			BGPIPv6Addr: &net.IP{},
-			BGPASNumber: &asn,
+			BGPASNumber: &bgpAsn,
+			BGPIPv4Net:  bgpV4Cidr,
 		},
 		Revision: node.ObjectMeta.ResourceVersion,
 	}, nil
+}
+
+// Convert a Calico Node to Kubernetes, place BGP configuration info in annotations
+func CalicoToK8sNode(kvp *model.KVPair) (*kapiv1.Node, error) {
+	vals := kvp.Value.(model.Node)
+	annotations := map[string]string {
+		"projectcalico.org/BGPIPv4Addr": vals.BGPIPv4Addr.String(),
+		"projectcalico.org/BGPASNumber": vals.BGPASNumber.String(),
+		"projectcalico.org/BGPIPv4Net":  vals.BGPIPv4Net.String(),
+	}
+
+	nodeMeta := kapiv1.ObjectMeta{
+		Name:        kvp.Key.(model.NodeKey).Hostname,
+		Annotations: annotations,
+		Labels:      vals.Labels,
+	}
+
+	node := &kapiv1.Node{
+		ObjectMeta: nodeMeta,
+	}
+
+	return node, nil
 }

@@ -47,19 +47,37 @@ func (c *nodeClient) Create(kvp *model.KVPair) (*model.KVPair, error) {
 }
 
 func (c *nodeClient) Update(kvp *model.KVPair) (*model.KVPair, error) {
-	log.Warn("Operation Update is not supported on Node type")
-	return nil, errors.ErrorOperationNotSupported{
-		Identifier: kvp.Key,
-		Operation:  "Update",
+	node, err := CalicoToK8sNode(kvp)
+	if err != nil {
+		return nil, err
 	}
+
+	newNode, err := c.clientSet.Nodes().Update(node)
+	if err != nil {
+		return nil, err
+	}
+
+	newCalicoNode, err := K8sNodeToCalico(newNode)
+	if err != nil {
+		log.Warnf("Failed to parse returned Node after call to update %+v", newNode)
+	}
+
+	return newCalicoNode, nil
 }
 
 func (c *nodeClient) Apply(kvp *model.KVPair) (*model.KVPair, error) {
-	log.Warn("Operation Apply is not supported on Node type")
-	return nil, errors.ErrorOperationNotSupported{
-		Identifier: kvp.Key,
-		Operation:  "Apply",
+	node, err := c.Update(kvp)
+	if err != nil {
+		if _, ok := err.(errors.ErrorResourceDoesNotExist); ok {
+			log.Warnf("Could not locate Node %s in k8s API, Create not supported", node.Key.(model.NodeKey).Hostname)
+			return nil, errors.ErrorOperationNotSupported{
+					Identifier: kvp.Key,
+					Operation:  "Create",
+			}
+		}
+		return nil, err
 	}
+	return node, nil
 }
 
 func (c *nodeClient) Delete(kvp *model.KVPair) error {

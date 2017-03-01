@@ -54,6 +54,9 @@ func (c *nodeClient) Update(kvp *model.KVPair) (*model.KVPair, error) {
 	}
 
 	node, err := MakeK8sNode(kvp, oldNode)
+	if err != nil {
+		return nil, err
+	}
 
 	newNode, err := c.clientSet.Nodes().Update(node)
 	if err != nil {
@@ -62,7 +65,8 @@ func (c *nodeClient) Update(kvp *model.KVPair) (*model.KVPair, error) {
 
 	newCalicoNode, err := K8sNodeToCalico(newNode)
 	if err != nil {
-		log.Warnf("Failed to parse returned Node after call to update %+v", newNode)
+		log.Errorf("Failed to parse returned Node after call to update %+v", newNode)
+		return nil, err
 	}
 
 	return newCalicoNode, nil

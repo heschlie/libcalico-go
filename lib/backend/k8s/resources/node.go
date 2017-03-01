@@ -47,14 +47,17 @@ func (c *nodeClient) Create(kvp *model.KVPair) (*model.KVPair, error) {
 }
 
 func (c *nodeClient) Update(kvp *model.KVPair) (*model.KVPair, error) {
-	node, err := CalicoToK8sNode(kvp)
+	// Get a current copy of the node to fill in fields we don't track
+	oldNode, err := c.clientSet.Nodes().Get(kvp.Key.(model.NodeKey).Hostname, metav1.GetOptions{})
 	if err != nil {
-		return nil, K8sErrorToCalico(err, kvp.Key)
+		return nil, err
 	}
+
+	node, err := MakeK8sNode(kvp, oldNode)
 
 	newNode, err := c.clientSet.Nodes().Update(node)
 	if err != nil {
-		return nil, err
+		return nil, K8sErrorToCalico(err, kvp.Key)
 	}
 
 	newCalicoNode, err := K8sNodeToCalico(newNode)
@@ -75,10 +78,7 @@ func (c *nodeClient) Apply(kvp *model.KVPair) (*model.KVPair, error) {
 
 		// Create is not currently implemented, and probably will not be, but will throw an appropriate error
 		// for the user, along with the above warning
-		node, err = c.Create(kvp)
-		if err != nil {
-			return nil, err
-		}
+		return c.Create(kvp)
 	}
 	return node, nil
 }

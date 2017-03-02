@@ -268,7 +268,7 @@ func (c *ModelAdaptor) getNode(nk model.NodeKey) (*model.KVPair, error) {
 
 	// Quick fix for k8s Node call.  The k8s Node.Get call returns a complete model.Node object, therefore we do
 	// not need to find each piece individually.
-	node, err := c.Get(nk); if err == nil {
+	node, err := c.client.Get(nk); if err == nil {
 		log.Debug("Got k8s node")
 		return node, nil
 	}

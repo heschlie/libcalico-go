@@ -266,6 +266,12 @@ func (c *ModelAdaptor) getBlock(k model.Key) (*model.KVPair, error) {
 func (c *ModelAdaptor) getNode(nk model.NodeKey) (*model.KVPair, error) {
 	var err error
 
+	// Quick fix for k8s Node call.  The k8s Node.Get call returns a complete model.Node object, therefore we do
+	// not need to find each piece individually.
+	node, err := c.Get(nk); if err == nil {
+		return node, nil
+	}
+
 	// Fill in the Metadata specific part of the node configuration.  At the
 	// moment, there is nothing to fill in.
 	if _, err = c.client.Get(model.HostMetadataKey{nk.Hostname}); err != nil {

@@ -57,7 +57,7 @@ func K8sNodeToCalico(node *kapiv1.Node) (*model.KVPair, error) {
 		calicoNode.BGPASNumber = &asn
 	}
 
-	kvp.Value = calicoNode
+	kvp.Value = &calicoNode
 
 	return &kvp, nil
 }

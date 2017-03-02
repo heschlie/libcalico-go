@@ -272,7 +272,6 @@ func (c *ModelAdaptor) getNode(nk model.NodeKey) (*model.KVPair, error) {
 		log.Debug("Got k8s node")
 		return node, nil
 	}
-	log.Debug(err)
 
 	// Fill in the Metadata specific part of the node configuration.  At the
 	// moment, there is nothing to fill in.

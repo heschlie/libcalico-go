@@ -28,11 +28,10 @@ func K8sNodeToCalico(node *kapiv1.Node) (*model.KVPair, error) {
 		Key: model.NodeKey{
 			Hostname: node.Name,
 		},
-		Value: model.Node{
-			Labels: node.Labels,
-		},
 		Revision: node.ObjectMeta.ResourceVersion,
 	}
+
+	calicoNode := model.Node{}
 
 	annotations := node.ObjectMeta.Annotations
 
@@ -43,9 +42,9 @@ func K8sNodeToCalico(node *kapiv1.Node) (*model.KVPair, error) {
 			return nil, err
 		}
 
-		kvp.Value.(model.Node).FelixIPv4   = ip
-		kvp.Value.(model.Node).BGPIPv4Addr = ip
-		kvp.Value.(model.Node).BGPIPv4Net  = cidr
+		calicoNode.FelixIPv4   = ip
+		calicoNode.BGPIPv4Addr = ip
+		calicoNode.BGPIPv4Net  = cidr
 	}
 
 	asnString, ok := annotations["projectcalico.org/ASNumber"]; if ok {
@@ -55,31 +54,12 @@ func K8sNodeToCalico(node *kapiv1.Node) (*model.KVPair, error) {
 			return nil, err
 		}
 
-		kvp.Value.(model.Node).BGPASNumber = &asn
+		calicoNode.BGPASNumber = &asn
 	}
+
+	kvp.Value = calicoNode
 
 	return &kvp, nil
-}
-
-// Convert a Calico Node to Kubernetes, place BGP configuration info in annotations
-func CalicoToK8sNode(kvp *model.KVPair) (*kapiv1.Node, error) {
-	calicoNode := kvp.Value.(model.Node)
-	annotations := map[string]string {
-		"projectcalico.org/IPv4Address": calicoNode.BGPIPv4Net.String(),
-		"projectcalico.org/ASNumber":    calicoNode.BGPASNumber.String(),
-	}
-
-	nodeMeta := kapiv1.ObjectMeta{
-		Name:        kvp.Key.(model.NodeKey).Hostname,
-		Annotations: annotations,
-		Labels:      calicoNode.Labels,
-	}
-
-	node := &kapiv1.Node{
-		ObjectMeta: nodeMeta,
-	}
-
-	return node, nil
 }
 
 // We take a k8s node and a Calico node and push the values from the Calico node into the k8s node

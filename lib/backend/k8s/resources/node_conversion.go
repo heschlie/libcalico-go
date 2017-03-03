@@ -67,6 +67,7 @@ func K8sNodeToCalico(node *kapiv1.Node) (*model.KVPair, error) {
 // We take a k8s node and a Calico node and push the values from the Calico node into the k8s node
 func MakeK8sNode(kvp *model.KVPair, node *kapiv1.Node) (*kapiv1.Node, error) {
 	calicoNode := kvp.Value.(*model.Node)
+	log.Debugf("Converting to k8s Node:\n%+v", calicoNode)
 
 	// In order to make sure we always end up with a CIDR that has the IP and not just network
 	// we assemble the CIDR from BGPIPv4 and FelixIPv4.

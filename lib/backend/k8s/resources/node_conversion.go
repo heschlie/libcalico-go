@@ -20,6 +20,8 @@ import (
 	"github.com/projectcalico/libcalico-go/lib/net"
 	"github.com/projectcalico/libcalico-go/lib/numorstring"
 	kapiv1 "k8s.io/client-go/pkg/api/v1"
+	"fmt"
+	"strings"
 )
 
 // Convert a Kubernetes format node, with Calico annotations, to a Calico Node
@@ -65,7 +67,12 @@ func K8sNodeToCalico(node *kapiv1.Node) (*model.KVPair, error) {
 // We take a k8s node and a Calico node and push the values from the Calico node into the k8s node
 func MakeK8sNode(kvp *model.KVPair, node *kapiv1.Node) (*kapiv1.Node, error) {
 	calicoNode := kvp.Value.(*model.Node)
-	node.Annotations["projectcalico.org/IPv4Address"] = calicoNode.BGPIPv4Net.String()
+
+	// In order to make sure we always end up with a CIDR that has the IP and not just network
+	// we assemble the CIDR from BGPIPv4 and FelixIPv4.
+	subnet := strings.Split(calicoNode.BGPIPv4Net.String(), "/")[1]
+	ipCidr := fmt.Sprintf("%s/%s", calicoNode.FelixIPv4.String(), subnet)
+	node.Annotations["projectcalico.org/IPv4Address"] = ipCidr
 
 	// Don't set the ASNumber if it is nil
 	if calicoNode.BGPASNumber != nil {

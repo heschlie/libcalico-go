@@ -315,6 +315,15 @@ func validateBlockValue(kvp *model.KVPair) error {
 // because of the way we do our list queries - we'll enumerate all endpoints on
 // host as well!
 func (c *ModelAdaptor) listNodes(l model.NodeListOptions) ([]*model.KVPair, error) {
+	// The k8s List returns the complete list anc values we're interested in, so we make a
+	// call and check if the list has anything in it, returning if it does.
+	nodes, err := c.client.List(l)
+	if err != nil {
+		return nil, err
+	} else if len(nodes) > 0 {
+		return nodes, nil
+	}
+
 	hml := model.HostMetadataListOptions{Hostname: l.Hostname}
 	hmr, err := c.client.List(hml)
 	if err != nil {

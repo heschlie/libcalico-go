@@ -70,10 +70,8 @@ func MakeK8sNode(kvp *model.KVPair, node *kapiv1.Node) (*kapiv1.Node, error) {
 
 	// In order to make sure we always end up with a CIDR that has the IP and not just network
 	// we assemble the CIDR from BGPIPv4 and FelixIPv4.
-	subnet := calicoNode.BGPIPv4Net.Mask.String()
-	log.Debug(subnet)
-	log.Debug(calicoNode.BGPIPv4Addr.String())
-	ipCidr := fmt.Sprintf("%s/%s", calicoNode.BGPIPv4Addr.String(), subnet)
+	subnet, _ := calicoNode.BGPIPv4Net.Mask.Size()
+	ipCidr := fmt.Sprintf("%s/%d", calicoNode.BGPIPv4Addr.String(), subnet)
 	node.Annotations["projectcalico.org/IPv4Address"] = ipCidr
 
 	// Don't set the ASNumber if it is nil

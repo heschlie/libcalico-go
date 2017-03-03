@@ -64,7 +64,7 @@ func K8sNodeToCalico(node *kapiv1.Node) (*model.KVPair, error) {
 
 // We take a k8s node and a Calico node and push the values from the Calico node into the k8s node
 func MakeK8sNode(kvp *model.KVPair, node *kapiv1.Node) (*kapiv1.Node, error) {
-	calicoNode := kvp.Value.(model.Node)
+	calicoNode := kvp.Value.(*model.Node)
 	node.Annotations["projectcalico.org/IPv4Address"] = calicoNode.BGPIPv4Net.String()
 
 	// Don't set the ASNumber if it is nil

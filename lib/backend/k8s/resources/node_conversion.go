@@ -21,7 +21,6 @@ import (
 	"github.com/projectcalico/libcalico-go/lib/numorstring"
 	kapiv1 "k8s.io/client-go/pkg/api/v1"
 	"fmt"
-	"strings"
 )
 
 // Convert a Kubernetes format node, with Calico annotations, to a Calico Node

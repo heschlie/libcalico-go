@@ -102,6 +102,12 @@ func (c *ModelAdaptor) Update(d *model.KVPair) (*model.KVPair, error) {
 			return d, nil
 		}
 	case model.NodeKey:
+		// Quick fix for k8s Node call.  The k8s Node.Update call requires a complete model.Node object,
+		// therefore we do not need to break down the node object.
+		node, err := c.client.Update(d); if err == nil {
+			return node, nil
+		}
+
 		p, o := toNodeComponents(d)
 		if p, err = c.client.Update(p); err != nil {
 			return nil, err
@@ -144,6 +150,12 @@ func (c *ModelAdaptor) Apply(d *model.KVPair) (*model.KVPair, error) {
 			return d, nil
 		}
 	case model.NodeKey:
+		// Quick fix for k8s Node call.  The k8s Node.Apply call requires a complete model.Node object,
+		// therefore we do not need to break down the node object.
+		node, err := c.client.Apply(d); if err == nil {
+			return node, nil
+		}
+
 		p, o := toNodeComponents(d)
 		if p, err = c.client.Apply(p); err != nil {
 			return nil, err

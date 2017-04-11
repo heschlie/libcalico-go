@@ -756,7 +756,7 @@ func (c *KubeClient) getHostConfig(k model.HostConfigKey) (*model.KVPair, error)
 		tunIp[3]++
 		ipNet.IP = tunIp
 
-		return &model.KVPair{Key: k, Value: tunIp}, nil
+		return &model.KVPair{Key: k, Value: tunIp.String()}, nil
 	}
 
 	return nil, errors.ErrorResourceDoesNotExist{Identifier: k}
@@ -784,7 +784,7 @@ func (c *KubeClient) listHostConfig(l model.HostConfigListOptions) ([]*model.KVP
 				Hostname: l.Hostname,
 				Name: l.Name,
 			},
-			Value: tunIp,
+			Value: tunIp.String(),
 		}
 
 		return []*model.KVPair{kvp}, nil

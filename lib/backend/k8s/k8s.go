@@ -40,6 +40,7 @@ import (
 	"k8s.io/client-go/pkg/util/wait"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"github.com/projectcalico/libcalico-go/lib/net"
 )
 
 type KubeClient struct {
@@ -739,9 +740,55 @@ func (c *KubeClient) deleteGlobalConfig(k *model.KVPair) error {
 }
 
 func (c *KubeClient) getHostConfig(k model.HostConfigKey) (*model.KVPair, error) {
+	if k.Name == "IpInIpTunnelAddr" {
+		n, err := c.clientSet.Nodes().Get(k.Hostname, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		ip, ipNet, err := net.ParseCIDR(n.Spec.PodCIDR)
+		if err != nil {
+			return nil, err
+		}
+		// We need to get the IP for the podCIDR and increment it to the
+		// first IP in the CIDR.
+		tunIp := ip.To4()
+		tunIp[3]++
+		ipNet.IP = tunIp
+
+		return &model.KVPair{Key: k, Value: tunIp}, nil
+	}
+
 	return nil, errors.ErrorResourceDoesNotExist{Identifier: k}
 }
 
 func (c *KubeClient) listHostConfig(l model.HostConfigListOptions) ([]*model.KVPair, error) {
+	if l.Name == "IpInIpTunnelAddr" {
+		n, err := c.clientSet.Nodes().Get(l.Hostname, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+
+		ip, ipNet, err := net.ParseCIDR(n.Spec.PodCIDR)
+		if err != nil {
+			return nil, err
+		}
+		// We need to get the IP for the podCIDR and increment it to the
+		// first IP in the CIDR.
+		tunIp := ip.To4()
+		tunIp[3]++
+		ipNet.IP = tunIp
+
+		kvp := &model.KVPair{
+			Key: model.HostConfigKey{
+				Hostname: l.Hostname,
+				Name: l.Name,
+			},
+			Value: tunIp,
+		}
+
+		return []*model.KVPair{kvp}, nil
+	}
+
 	return []*model.KVPair{}, nil
 }

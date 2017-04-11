@@ -451,6 +451,21 @@ func (syn *kubeSyncer) performSnapshot() ([]model.KVPair, map[string]bool, resou
 			keys[c.Key.String()] = true
 		}
 
+		// Sync Hostconfig.
+		log.Info("Syncing HostConfig")
+		hostConfList, err := syn.kc.listHostConfig(model.HostConfigListOptions{})
+		if err != nil {
+			log.Warnf("Error querying HostConfig during snapshot, retrying: %s", err)
+			time.Sleep(1 * time.Second)
+			continue
+		}
+		log.Info("Received HostConfig List() response")
+
+		for _, h := range hostConfList {
+			snap = append(snap, *h)
+			keys[h.Key.String()] = true
+		}
+
 		// Sync IP Pools.
 		log.Info("Syncing IP Pools")
 		poolList, err := syn.kc.List(model.IPPoolListOptions{})

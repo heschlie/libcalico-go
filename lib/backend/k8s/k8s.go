@@ -812,7 +812,7 @@ func (c *KubeClient) listHostConfig(l model.HostConfigListOptions) ([]*model.KVP
 func getTunIp(n *v1.Node) (string, error) {
 	ip, ipNet, err := net.ParseCIDR(n.Spec.PodCIDR)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	// We need to get the IP for the podCIDR and increment it to the
 	// first IP in the CIDR.

@@ -771,7 +771,7 @@ func (c *KubeClient) listHostConfig(l model.HostConfigListOptions) ([]*model.KVP
 		for _, node := range nodes.Items {
 			tunIp, err := getTunIp(&node)
 			if err != nil {
-				return nil, err
+				return []*model.KVPair{}, nil
 			}
 
 			kvp := &model.KVPair{
@@ -792,7 +792,7 @@ func (c *KubeClient) listHostConfig(l model.HostConfigListOptions) ([]*model.KVP
 
 		tunIp, err := getTunIp(node)
 		if err != nil {
-			return nil, err
+			return []*model.KVPair{}, nil
 		}
 
 		kvp := &model.KVPair{

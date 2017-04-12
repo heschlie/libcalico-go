@@ -574,7 +574,7 @@ func (syn *kubeSyncer) parseNodeEvent(e watch.Event) (*model.KVPair, *model.KVPa
 
 	kvpHostIp := &model.KVPair{
 		Key: model.HostIPKey{Hostname: node.Name},
-		Value: kvp.Value.(model.Node).BGPIPv4Addr,
+		Value: kvp.Value.(*model.Node).BGPIPv4Addr,
 	}
 
 	if err != nil {

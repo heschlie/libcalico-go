@@ -311,9 +311,9 @@ func (syn *kubeSyncer) readFromKubernetesAPI() {
 			}
 
 			// Event is OK - parse it and send it over the channel.
-			kvp = syn.parseNodeEvent(event)
+			kvp, kvpHostIp := syn.parseNodeEvent(event)
 			latestVersions.nodeVersion = kvp.Revision.(string)
-			syn.sendUpdates([]model.KVPair{*kvp})
+			syn.sendUpdates([]model.KVPair{*kvp, *kvpHostIp})
 		}
 	}
 }
@@ -564,13 +564,18 @@ func (syn *kubeSyncer) parseNamespaceEvent(e watch.Event) []model.KVPair {
 	return []model.KVPair{*rules, *tags, *labels, *policy}
 }
 
-func (syn *kubeSyncer) parseNodeEvent(e watch.Event) *model.KVPair {
+func (syn *kubeSyncer) parseNodeEvent(e watch.Event) (*model.KVPair, *model.KVPair) {
 	node, ok := e.Object.(*k8sapi.Node)
 	if !ok {
 		log.Panicf("Invalid node event. Type: %s, Object: %+v", e.Type, e.Object)
 	}
 
 	kvp, err := resources.K8sNodeToCalico(node)
+
+	kvpHostIp := &model.KVPair{
+		Key: model.HostIPKey{Hostname: node.Name},
+		Value: kvp.Value.(model.Node).BGPIPv4Addr,
+	}
 
 	if err != nil {
 		log.Panicf("%s", err)
@@ -580,7 +585,7 @@ func (syn *kubeSyncer) parseNodeEvent(e watch.Event) *model.KVPair {
 		kvp.Value = nil
 	}
 
-	return kvp
+	return kvp, kvpHostIp
 }
 
 // parsePodEvent returns a KVPair for the given event.  If the event isn't

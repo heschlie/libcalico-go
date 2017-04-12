@@ -371,6 +371,8 @@ func (c *KubeClient) Get(k model.Key) (*model.KVPair, error) {
 		return c.ipPoolClient.Get(k.(model.IPPoolKey))
 	case model.NodeKey:
 		return c.nodeClient.Get(k.(model.NodeKey))
+	case model.HostIPKey:
+		return c.getHostIp(k.(model.HostIPKey))
 	default:
 		return nil, errors.ErrorOperationNotSupported{
 			Identifier: k,
@@ -807,6 +809,15 @@ func (c *KubeClient) listHostConfig(l model.HostConfigListOptions) ([]*model.KVP
 	}
 
 	return kvps, nil
+}
+
+func (c *KubeClient) getHostIp(k model.HostIPKey) (*model.KVPair, error) {
+	node, err := c.nodeClient.Get(model.NodeKey{Hostname:k.Hostname})
+	if err != nil {
+		return nil, resources.K8sErrorToCalico(err, k)
+	}
+
+	return &model.KVPair{Key: k, Value: node.Value.(model.Node).BGPIPv4Addr}, nil
 }
 
 func getTunIp(n *v1.Node) (string, error) {

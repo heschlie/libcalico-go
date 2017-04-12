@@ -820,5 +820,5 @@ func getTunIp(n *v1.Node) (string, error) {
 	tunIp[3]++
 	ipNet.IP = tunIp
 
-	return tunIp.String(), nil
+	return ipNet.String(), nil
 }
